@@ -4,13 +4,21 @@ import com.github.ocraft.s2client.bot.S2Agent;
 import com.github.ocraft.s2client.bot.S2Coordinator;
 import com.github.ocraft.s2client.bot.gateway.UnitInPool;
 import com.github.ocraft.s2client.protocol.data.Abilities;
+import com.github.ocraft.s2client.protocol.data.Ability;
+import com.github.ocraft.s2client.protocol.data.UnitType;
 import com.github.ocraft.s2client.protocol.data.Units;
 import com.github.ocraft.s2client.protocol.game.Difficulty;
 import com.github.ocraft.s2client.protocol.game.LocalMap;
 import com.github.ocraft.s2client.protocol.game.Race;
+import com.github.ocraft.s2client.protocol.spatial.Point2d;
+import com.github.ocraft.s2client.protocol.unit.Alliance;
 import com.github.ocraft.s2client.protocol.unit.Unit;
+import io.netty.util.internal.ThreadLocalRandom;
 
 import java.nio.file.Paths;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Predicate;
 
 public class TutorialBot {
 
@@ -22,7 +30,7 @@ public class TutorialBot {
 
         @Override
         public void onStep() {
-            System.out.println(observation().getGameLoop());
+            tryBuildSupplyDepot();
         }
 
         @Override
@@ -36,6 +44,54 @@ public class TutorialBot {
                     break;
             }
         }
+
+        private boolean tryBuildSupplyDepot() {
+            if (observation().getFoodUsed() <= observation().getFoodCap() - 2) {
+                return false;
+            }
+
+            return tryBuildStructure(Abilities.BUILD_SUPPLY_DEPOT, Units.TERRAN_SCV);
+        }
+
+        private boolean tryBuildStructure(Abilities abilities, UnitType type) {
+            if (!observation().getUnits(Alliance.SELF, doesBuildWith(abilities)).isEmpty()) {
+                return false;
+            }
+
+            Optional<UnitInPool> unitInPool = getRandomUnit(type);
+            if (unitInPool.isPresent()) {
+                Unit unit = unitInPool.get().unit();
+                actions().unitCommand(
+                        unit,
+                        abilities,
+                        unit.getPosition().toPoint2d().add(Point2d.of(getRandomScalar(), getRandomScalar()).mul(15f)),
+                        false
+                );
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
+
+        private Predicate<UnitInPool> doesBuildWith(Ability ability) {
+            return unitInPool -> unitInPool.unit()
+                    .getOrders()
+                    .stream()
+                    .anyMatch(unitOrder -> ability.equals(unitOrder.getAbility()));
+        }
+
+        private Optional<UnitInPool> getRandomUnit(UnitType type) {
+            List<UnitInPool> units = observation().getUnits(Alliance.SELF, UnitInPool.isUnit(type));
+            return units.isEmpty()
+                    ? Optional.empty()
+                    : Optional.of(units.get(ThreadLocalRandom.current().nextInt(units.size())));
+        }
+
+        private float getRandomScalar() {
+            return ThreadLocalRandom.current().nextFloat() * 2 - 1;
+        }
+        
     }
 
     public static void main(String[] args) {
