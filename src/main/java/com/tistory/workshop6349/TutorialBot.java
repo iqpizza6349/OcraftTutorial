@@ -27,7 +27,7 @@ public class TutorialBot {
 
         @Override
         public void onUnitIdle(UnitInPool unitInPool) {
-            Unit unit = unitInPool.unit();
+            Unit unit = unitInPool.unit(); // 아직도 이해 못함 원리를
             switch ((Units) unit.getType()) {
                 case TERRAN_COMMAND_CENTER:
                     actions().unitCommand(unit, Abilities.TRAIN_SCV, false);
