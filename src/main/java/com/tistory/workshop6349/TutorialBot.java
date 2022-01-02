@@ -5,9 +5,7 @@ import com.github.ocraft.s2client.bot.S2Coordinator;
 import com.github.ocraft.s2client.bot.gateway.UnitInPool;
 import com.github.ocraft.s2client.protocol.data.Abilities;
 import com.github.ocraft.s2client.protocol.data.Ability;
-import com.github.ocraft.s2client.protocol.data.UnitType;
 import com.github.ocraft.s2client.protocol.data.Units;
-import com.github.ocraft.s2client.protocol.game.BattlenetMap;
 import com.github.ocraft.s2client.protocol.game.Difficulty;
 import com.github.ocraft.s2client.protocol.game.LocalMap;
 import com.github.ocraft.s2client.protocol.game.Race;
@@ -19,7 +17,6 @@ import com.github.ocraft.s2client.protocol.unit.Unit;
 import io.netty.util.internal.ThreadLocalRandom;
 
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.Predicate;
 
@@ -39,24 +36,24 @@ public class TutorialBot {
             tryBuildBarracks();
         }
 
-        private boolean tryBuildSupplyDepot() {
+        private void tryBuildSupplyDepot() {
             // If we are not supply capped, don't build a supply depot.
             if (observation().getFoodUsed() <= observation().getFoodCap() - 2) {
-                return false;
+                return;
             }
 
             // Try and build a depot. Find a random TERRAN_SCV and give it the order.
-            return tryBuildStructure(Abilities.BUILD_SUPPLY_DEPOT, Units.TERRAN_SCV);
+            tryBuildStructure(Abilities.BUILD_SUPPLY_DEPOT);
         }
 
-        private boolean tryBuildStructure(Ability abilityTypeForStructure, UnitType unitType) {
+        private void tryBuildStructure(Ability abilityTypeForStructure) {
             // If a unit already is building a supply structure of this type, do nothing.
             if (!observation().getUnits(Alliance.SELF, doesBuildWith(abilityTypeForStructure)).isEmpty()) {
-                return false;
+                return;
             }
 
             // Just try a random location near the unit.
-            Optional<UnitInPool> unitInPool = getRandomUnit(unitType);
+            Optional<UnitInPool> unitInPool = getRandomUnit();
             if (unitInPool.isPresent()) {
                 Unit unit = unitInPool.get().unit();
                 actions().unitCommand(
@@ -64,10 +61,6 @@ public class TutorialBot {
                         abilityTypeForStructure,
                         unit.getPosition().toPoint2d().add(Point2d.of(getRandomScalar(), getRandomScalar()).mul(15.0f)),
                         false);
-                return true;
-            }
-            else {
-                return false;
             }
         }
 
@@ -83,9 +76,9 @@ public class TutorialBot {
 //            return tryBuildStructure(Abilities.BUILD_REFINERY, Units.TERRAN_SCV);
 //        }
         
-        private boolean tryBuildBarracks() {
+        private void tryBuildBarracks() {
             if (countUnitType(Units.TERRAN_SUPPLY_DEPOT) < 1) {
-                return false;
+                return;
             }
 
 //            if (countUnitType(Units.TERRAN_REFINERY) < 1) {
@@ -93,10 +86,10 @@ public class TutorialBot {
 //            }
 
             if (countUnitType(Units.TERRAN_BARRACKS) > 2) {
-                return false;
+                return;
             }
 
-            return tryBuildStructure(Abilities.BUILD_BARRACKS, Units.TERRAN_SCV);
+            tryBuildStructure(Abilities.BUILD_BARRACKS);
         }
 
         private Predicate<UnitInPool> doesBuildWith(Ability abilityTypeForStructure) {
@@ -106,8 +99,8 @@ public class TutorialBot {
                     .anyMatch(unitOrder -> abilityTypeForStructure.equals(unitOrder.getAbility()));
         }
 
-        private Optional<UnitInPool> getRandomUnit(UnitType unitType) {
-            List<UnitInPool> units = observation().getUnits(Alliance.SELF, UnitInPool.isUnit(unitType));
+        private Optional<UnitInPool> getRandomUnit() {
+            List<UnitInPool> units = observation().getUnits(Alliance.SELF, UnitInPool.isUnit(Units.TERRAN_SCV));
             return units.isEmpty()
                     ? Optional.empty()
                     : Optional.of(units.get(ThreadLocalRandom.current().nextInt(units.size())));
@@ -126,7 +119,8 @@ public class TutorialBot {
                     break;
                 }
                 case TERRAN_SCV: {
-                    findNearestMineralPatch(unit.getPosition().toPoint2d()).ifPresent(mineralPath ->
+                    findNearestMineralPatch(unit.getPosition().toPoint2d())
+                            .ifPresent(mineralPath ->
                             actions().unitCommand(unit, Abilities.SMART, mineralPath, false));
                     break;
                 }
@@ -138,9 +132,7 @@ public class TutorialBot {
                     if (countUnitType(Units.TERRAN_MARINE) < 10) {
                         break;
                     }
-                    findEnemyPosition().ifPresent(point2d -> {
-                        actions().unitCommand(unit, Abilities.ATTACK_ATTACK, point2d, false);
-                    });
+                    findEnemyPosition().ifPresent(point2d -> actions().unitCommand(unit, Abilities.ATTACK_ATTACK, point2d, false));
                 }
                 default:
                     break;
