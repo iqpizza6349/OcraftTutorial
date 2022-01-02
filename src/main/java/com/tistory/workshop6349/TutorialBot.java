@@ -11,6 +11,8 @@ import com.github.ocraft.s2client.protocol.game.BattlenetMap;
 import com.github.ocraft.s2client.protocol.game.Difficulty;
 import com.github.ocraft.s2client.protocol.game.LocalMap;
 import com.github.ocraft.s2client.protocol.game.Race;
+import com.github.ocraft.s2client.protocol.game.raw.StartRaw;
+import com.github.ocraft.s2client.protocol.response.ResponseGameInfo;
 import com.github.ocraft.s2client.protocol.spatial.Point2d;
 import com.github.ocraft.s2client.protocol.unit.Alliance;
 import com.github.ocraft.s2client.protocol.unit.Unit;
@@ -18,8 +20,7 @@ import io.netty.util.internal.ThreadLocalRandom;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Predicate;
 
 public class TutorialBot {
@@ -103,16 +104,23 @@ public class TutorialBot {
         public void onUnitIdle(UnitInPool unitInPool) {
             Unit unit = unitInPool.unit();
             switch ((Units) unit.getType()) {
-                case TERRAN_COMMAND_CENTER:
+                case TERRAN_COMMAND_CENTER: {
                     actions().unitCommand(unit, Abilities.TRAIN_SCV, false);
                     break;
-                case TERRAN_SCV:
+                }
+                case TERRAN_SCV: {
                     findNearestMineralPatch(unit.getPosition().toPoint2d()).ifPresent(mineralPath ->
                             actions().unitCommand(unit, Abilities.SMART, mineralPath, false));
                     break;
+                }
                 case TERRAN_BARRACKS: {
                     actions().unitCommand(unit, Abilities.TRAIN_MARINE, false);
                     break;
+                }
+                case TERRAN_MARINE: {
+                    findEnemyPosition().ifPresent(point2d -> {
+                        actions().unitCommand(unit, Abilities.ATTACK_ATTACK, point2d, false);
+                    });
                 }
                 default:
                     break;
@@ -140,7 +148,23 @@ public class TutorialBot {
             return observation().getUnits(Alliance.SELF, UnitInPool.isUnit(unitType)).size();
         }
 
+        private Optional<Point2d> findEnemyPosition() {
+            ResponseGameInfo gameInfo = observation().getGameInfo();
 
+            Optional<StartRaw> startRaw = gameInfo.getStartRaw();
+            if (startRaw.isPresent()) {
+                Set<Point2d> startLocations = new HashSet<>(startRaw.get().getStartLocations());
+                startLocations.remove(observation().getStartLocation().toPoint2d());
+                if (startLocations.isEmpty()) {
+                    return Optional.empty();
+                }
+                return Optional.of(new ArrayList<>(startLocations)
+                        .get(ThreadLocalRandom.current().nextInt(startLocations.size())));
+            }
+            else {
+                return Optional.empty();
+            }
+        }
     }
 
     public static void main(String[] args) {
