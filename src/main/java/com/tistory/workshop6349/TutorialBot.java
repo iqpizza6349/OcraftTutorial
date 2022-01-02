@@ -135,6 +135,9 @@ public class TutorialBot {
                     break;
                 }
                 case TERRAN_MARINE: {
+                    if (countUnitType(Units.TERRAN_MARINE) < 10) {
+                        break;
+                    }
                     findEnemyPosition().ifPresent(point2d -> {
                         actions().unitCommand(unit, Abilities.ATTACK_ATTACK, point2d, false);
                     });
