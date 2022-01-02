@@ -35,6 +35,7 @@ public class TutorialBot {
         @Override
         public void onStep() {
             tryBuildSupplyDepot();
+//            tryBuildRefinery();
             tryBuildBarracks();
         }
 
@@ -64,17 +65,34 @@ public class TutorialBot {
                         unit.getPosition().toPoint2d().add(Point2d.of(getRandomScalar(), getRandomScalar()).mul(15.0f)),
                         false);
                 return true;
-            } else {
+            }
+            else {
                 return false;
             }
         }
 
+//        private boolean tryBuildRefinery() {
+//            if (countUnitType(Units.TERRAN_SUPPLY_DEPOT) < 1) {
+//                return false;
+//            }
+//
+//            if (countUnitType(Units.TERRAN_REFINERY) > 0) {
+//                return false;
+//            }
+//            System.out.println(countUnitType(Units.TERRAN_REFINERY));
+//            return tryBuildStructure(Abilities.BUILD_REFINERY, Units.TERRAN_SCV);
+//        }
+        
         private boolean tryBuildBarracks() {
             if (countUnitType(Units.TERRAN_SUPPLY_DEPOT) < 1) {
                 return false;
             }
 
-            if (countUnitType(Units.TERRAN_BARRACKS) > 0) {
+//            if (countUnitType(Units.TERRAN_REFINERY) < 1) {
+//                return false;
+//            }
+
+            if (countUnitType(Units.TERRAN_BARRACKS) > 2) {
                 return false;
             }
 
@@ -98,7 +116,6 @@ public class TutorialBot {
         private float getRandomScalar() {
             return ThreadLocalRandom.current().nextFloat() * 2 - 1;
         }
-
 
         @Override
         public void onUnitIdle(UnitInPool unitInPool) {
