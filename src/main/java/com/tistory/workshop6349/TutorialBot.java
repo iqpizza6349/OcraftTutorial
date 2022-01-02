@@ -40,6 +40,12 @@ public class TutorialBot {
                 case TERRAN_COMMAND_CENTER:
                     actions().unitCommand(unit, Abilities.TRAIN_SCV, false);
                     break;
+                case TERRAN_SCV:
+                    findNearestMineralPatch(unit.getPosition().toPoint2d())
+                            .ifPresent(mineralPath -> {
+                                actions().unitCommand(unit, Abilities.SMART, mineralPath, false);
+                            });
+                    break;
                 default:
                     break;
             }
@@ -91,7 +97,23 @@ public class TutorialBot {
         private float getRandomScalar() {
             return ThreadLocalRandom.current().nextFloat() * 2 - 1;
         }
-        
+
+        private Optional<Unit> findNearestMineralPatch(Point2d start) {
+            List<UnitInPool> units = observation().getUnits(Alliance.NEUTRAL);
+            double distance = Double.MAX_VALUE;
+            Unit target = null;
+            for (UnitInPool unitInPool : units) {
+                Unit unit = unitInPool.unit();
+                if (unit.getType().equals(Units.NEUTRAL_MINERAL_FIELD)) {
+                    double d = unit.getPosition().toPoint2d().distance(start);
+                    if (d < distance) {
+                        distance = d;
+                        target = unit;
+                    }
+                }
+            }
+            return Optional.ofNullable(target);
+        }
     }
 
     public static void main(String[] args) {
